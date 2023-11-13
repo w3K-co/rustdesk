@@ -166,7 +166,7 @@ jobs:
       - name: Rename rustdesk
         run: |
           for name in rustdesk*??.dmg; do
-              mv "$name" "rustdesk.latest.dmg"
+              mv "$name" "rustdesk-latest.dmg"
           done
 
       - name: Publish DMG package
@@ -176,4 +176,4 @@ jobs:
           prerelease: true
           tag_name: ${{ env.TAG_NAME }}
           files: |
-            rustdesk.latest.dmg
+            rustdesk-latest.dmg
