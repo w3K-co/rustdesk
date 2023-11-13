@@ -1,0 +1,15 @@
+name: Flutter Weekly Mac Build
+
+on:
+  schedule:
+    # schedule build every week
+    - cron: "0 3 * * 0"
+  workflow_dispatch:
+
+jobs:
+  run-flutter-weekly-build:
+    uses: ./.github/workflows/flutter-build-m.yml
+    secrets: inherit
+    with:
+      upload-artifact: true
+      upload-tag: "macweekly"
