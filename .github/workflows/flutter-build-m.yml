@@ -166,8 +166,7 @@ jobs:
       - name: Rename rustdesk
         run: |
           for name in rustdesk*??.dmg; do
-              cp "$name" "rustdesk.latest.dmg"
-              mv "$name" "${name%%.dmg}-${{ matrix.job.arch }}.dmg"
+              mv "$name" "rustdesk.latest.dmg"
           done
 
       - name: Publish DMG package
@@ -178,4 +177,3 @@ jobs:
           tag_name: ${{ env.TAG_NAME }}
           files: |
             rustdesk.latest.dmg
-            rustdesk*-${{ matrix.job.arch }}.dmg
