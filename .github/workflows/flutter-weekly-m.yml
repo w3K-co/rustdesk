@@ -1,4 +1,4 @@
-name: Flutter Weekly Mac Build
+name: Flutter Weekly macOS Build
 
 on:
   schedule:
