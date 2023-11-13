@@ -1,9 +1,9 @@
-name: Flutter Weekly Build
+name: Flutter Weekly Windows and MacOS Build
 
 on:
   schedule:
     # schedule build every week
-    - cron: "0 0 * * 0"
+    - cron: "0 1 * * 0"
   workflow_dispatch:
 
 jobs:
