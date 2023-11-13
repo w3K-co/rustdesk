@@ -8,7 +8,7 @@ on:
 
 jobs:
   run-flutter-weekly-build:
-    uses: ./.github/workflows/flutter-build-wm.yml
+    uses: ./.github/workflows/flutter-build-w.yml
     secrets: inherit
     with:
       upload-artifact: true
