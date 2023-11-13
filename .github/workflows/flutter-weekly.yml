@@ -1,4 +1,4 @@
-name: Flutter Weekly Windows and MacOS Build
+name: Flutter Weekly Windows and macOS Build
 
 on:
   schedule:
