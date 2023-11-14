@@ -3,7 +3,7 @@ name: Flutter Weekly macOS Build
 on:
   schedule:
     # schedule build every week
-    - cron: "0 3 * * 0"
+    - cron: "0 2 * * 0"
   workflow_dispatch:
 
 jobs:
