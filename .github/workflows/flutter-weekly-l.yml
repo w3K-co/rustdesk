@@ -1,0 +1,15 @@
+name: Flutter Weekly Linux Build
+
+on:
+  schedule:
+    # schedule build every week
+    - cron: "0 4 * * 0"
+  workflow_dispatch:
+
+jobs:
+  run-flutter-weekly-build:
+    uses: ./.github/workflows/flutter-build-l.yml
+    secrets: inherit
+    with:
+      upload-artifact: true
+      upload-tag: "Linux"
