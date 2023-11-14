@@ -1191,7 +1191,7 @@ jobs:
 
       - name: Rename Binary
         run: |
-          mv rustdesk-latest-${{ matrix.job.arch }}.deb rustdesk-latest.deb
+          mv rustdesk-latest-${{ matrix.job.arch }}.deb rustdesk-${{ env.VERSION }}.deb
 
       - uses: rustdesk-org/run-on-arch-action@amd64-support
         name: Build rustdesk flatpak package for ${{ matrix.job.arch }}
@@ -1238,7 +1238,11 @@ jobs:
             pushd flatpak
             git clone https://github.com/flathub/shared-modules.git --depth=1
             flatpak-builder --user --force-clean --repo=repo ./build ./rustdesk.json
-            flatpak build-bundle ./repo rustdesk-latest-${{ matrix.job.arch }}.flatpak co.w3K.RustDesk
+            flatpak build-bundle ./repo rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.flatpak co.w3K.RustDesk
+
+      - name: Rename FlatPak
+        run: |
+          cp flatpak/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.flatpak flatpak/rustdesk-latest-${{ matrix.job.arch }}.flatpak
 
       - name: Publish flatpak package
         uses: softprops/action-gh-release@v1
@@ -1247,4 +1251,5 @@ jobs:
           prerelease: true
           tag_name: ${{ env.TAG_NAME }}
           files: |
+            flatpak/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.flatpak
             flatpak/rustdesk-latest-${{ matrix.job.arch }}.flatpak
