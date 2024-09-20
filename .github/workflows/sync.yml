@@ -1,0 +1,37 @@
+name: Sync Fork with Upstream
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs every day at midnight UTC (adjust the time as needed)
+  workflow_dispatch: # Allows manual triggering of the workflow
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Fork
+      uses: actions/checkout@v3
+      with:
+        persist-credentials: false # Disable default GitHub token handling
+
+    - name: Set up Git
+      run: |
+        git config --global user.name "GitHub Action"
+        git config --global user.email "action@github.com"
+
+    - name: Add Upstream
+      run: |
+        git remote add upstream https://github.com/rustdesk/rustdesk.git
+        git fetch upstream
+        git checkout main
+        git merge upstream/main --no-commit --no-ff
+
+    - name: Commit Changes
+      run: |
+        git commit -m "Merge upstream changes"
+      continue-on-error: true # In case there are no changes, avoid workflow failure
+
+    - name: Push Changes
+      run: |
+        git push origin main
