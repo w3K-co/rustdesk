@@ -24,8 +24,8 @@ jobs:
       run: |
         git remote add upstream https://github.com/rustdesk/rustdesk.git
         git fetch upstream
-        git checkout main
-        git merge upstream/main --no-commit --no-ff
+        git checkout master
+        git merge upstream/master --no-commit --no-ff
 
     - name: Commit Changes
       run: |
@@ -34,4 +34,4 @@ jobs:
 
     - name: Push Changes
       run: |
-        git push origin main
+        git push origin master
