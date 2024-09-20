@@ -33,5 +33,7 @@ jobs:
       continue-on-error: true # In case there are no changes, avoid workflow failure
 
     - name: Push Changes
+      env:
+        GITHUB_TOKEN: ${{ secrets.REPOSYNC }} # Use the personal access token (PAT)
       run: |
-        git push origin master
+        git push https://$GITHUB_ACTOR:${{ secrets.REPOSYNC }}@github.com/$GITHUB_REPOSITORY.git master
