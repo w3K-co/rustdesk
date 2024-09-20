@@ -2,38 +2,35 @@ name: Sync Fork with Upstream
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Runs every day at midnight UTC (adjust the time as needed)
+    - cron:  '0 0 * * *' # Runs every day at midnight UTC (adjust the time as needed)
   workflow_dispatch: # Allows manual triggering of the workflow
 
 jobs:
-  sync:
+  merge:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Fork
-      uses: actions/checkout@v3
-      with:
-        persist-credentials: false # Disable default GitHub token handling
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1 # Fetch shallow history
 
-    - name: Set up Git
-      run: |
-        git config --global user.name "GitHub Action"
-        git config --global user.email "action@github.com"
+      - name: Set up Git
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
 
-    - name: Add Upstream
-      run: |
-        git remote add upstream https://github.com/rustdesk/rustdesk.git
-        git fetch upstream
-        git checkout master
-        git merge upstream/master --no-commit --no-ff
+      - name: Unshallow the Git history
+        run: git pull --unshallow
 
-    - name: Commit Changes
-      run: |
-        git commit -m "Merge upstream changes"
-      continue-on-error: true # In case there are no changes, avoid workflow failure
+      - name: Add Upstream and Fetch
+        run: |
+          git remote add upstream https://github.com/rustdesk/rustdesk.git
+          git fetch upstream
 
-    - name: Push Changes
-      env:
-        GITHUB_TOKEN: ${{ secrets.REPOSYNC }} # Use the personal access token (PAT)
-      run: |
-        git push https://$GITHUB_ACTOR:${{ secrets.REPOSYNC }}@github.com/$GITHUB_REPOSITORY.git master
+      - name: Merge upstream/master into local master
+        run: |
+          git checkout master
+          git merge --no-edit upstream/master
+
+      - name: Push changes to the fork
+        run: git push origin master
