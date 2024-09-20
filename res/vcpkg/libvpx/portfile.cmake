@@ -4,32 +4,30 @@ vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO webmproject/libvpx
     REF "v${VERSION}"
-    SHA512 49706838563c92fab7334376848d0f374efcbc1729ef511e967c908fd2ecd40e8d197f1d85da6553b3a7026bdbc17e5a76595319858af26ce58cb9a4c3854897
+    SHA512 3e3bfad3d035c0bc3db7cb5a194d56d3c90f5963fb1ad527ae5252054e7c48ce2973de1346c97d94b59f7a95d4801bec44214cce10faf123f92b36fca79a8d1e
     HEAD_REF master
     PATCHES
         0002-Fix-nasm-debug-format-flag.patch
         0003-add-uwp-v142-and-v143-support.patch
         0004-remove-library-suffixes.patch
-        0005-fix-arm64-build.patch # Upstream commit: https://github.com/webmproject/libvpx/commit/858a8c611f4c965078485860a6820e2135e6611b
 )
 
-vcpkg_find_acquire_program(PERL)
-
-get_filename_component(PERL_EXE_PATH ${PERL} DIRECTORY)
-
 if(CMAKE_HOST_WIN32)
-    vcpkg_acquire_msys(MSYS_ROOT PACKAGES make)
-    set(BASH ${MSYS_ROOT}/usr/bin/bash.exe)
-    set(ENV{PATH} "${MSYS_ROOT}/usr/bin;$ENV{PATH};${PERL_EXE_PATH}")
+    vcpkg_acquire_msys(MSYS_ROOT PACKAGES make perl)
+    set(ENV{PATH} "${MSYS_ROOT}/usr/bin;$ENV{PATH}")
 else()
-    set(BASH /bin/bash)
+    vcpkg_find_acquire_program(PERL)
+    get_filename_component(PERL_EXE_PATH ${PERL} DIRECTORY)
     set(ENV{PATH} "${MSYS_ROOT}/usr/bin:$ENV{PATH}:${PERL_EXE_PATH}")
 endif()
 
+find_program(BASH NAME bash HINTS ${MSYS_ROOT}/usr/bin REQUIRED NO_CACHE)
+
+vcpkg_find_acquire_program(NASM)
+get_filename_component(NASM_EXE_PATH ${NASM} DIRECTORY)
+vcpkg_add_to_path(${NASM_EXE_PATH})
+
 if(VCPKG_TARGET_IS_WINDOWS AND NOT VCPKG_TARGET_IS_MINGW)
-    vcpkg_find_acquire_program(NASM)
-    get_filename_component(NASM_EXE_PATH ${NASM} DIRECTORY)
-    vcpkg_add_to_path(${NASM_EXE_PATH})
 
     file(REMOVE_RECURSE "${CURRENT_BUILDTREES_DIR}/${TARGET_TRIPLET}-tmp")
 
@@ -130,14 +128,12 @@ if(VCPKG_TARGET_IS_WINDOWS AND NOT VCPKG_TARGET_IS_MINGW)
     endif()
 
 else()
-    vcpkg_find_acquire_program(YASM)
-    get_filename_component(YASM_EXE_PATH ${YASM} DIRECTORY)
-    vcpkg_add_to_path(${YASM_EXE_PATH})
 
     set(OPTIONS "--disable-examples --disable-tools --disable-docs --disable-unit-tests --enable-pic")
 
     set(OPTIONS_DEBUG "--enable-debug-libs --enable-debug --prefix=${CURRENT_PACKAGES_DIR}/debug")
     set(OPTIONS_RELEASE "--prefix=${CURRENT_PACKAGES_DIR}")
+    set(AS_NASM "--as=nasm")
 
     if(VCPKG_LIBRARY_LINKAGE STREQUAL "dynamic")
         set(OPTIONS "${OPTIONS} --disable-static --enable-shared")
@@ -169,12 +165,18 @@ else()
     include("${cmake_vars_file}")
 
     # Set environment variables for configure
-    set(ENV{CC} ${VCPKG_DETECTED_CMAKE_C_COMPILER})
-    set(ENV{CXX} ${VCPKG_DETECTED_CMAKE_CXX_COMPILER})
-    set(ENV{AR} ${VCPKG_DETECTED_CMAKE_AR})
-    set(ENV{LD} ${VCPKG_DETECTED_CMAKE_LINKER})
-    set(ENV{RANLIB} ${VCPKG_DETECTED_CMAKE_RANLIB})
-    set(ENV{STRIP} ${VCPKG_DETECTED_CMAKE_STRIP})
+    if(VCPKG_DETECTED_CMAKE_C_COMPILER MATCHES "([^\/]*-)gcc$")
+        message(STATUS "Cross-building for ${TARGET_TRIPLET} with ${CMAKE_MATCH_1}")
+        set(ENV{CROSS} ${CMAKE_MATCH_1})
+        unset(AS_NASM)
+    else()
+        set(ENV{CC} ${VCPKG_DETECTED_CMAKE_C_COMPILER})
+        set(ENV{CXX} ${VCPKG_DETECTED_CMAKE_CXX_COMPILER})
+        set(ENV{AR} ${VCPKG_DETECTED_CMAKE_AR})
+        set(ENV{LD} ${VCPKG_DETECTED_CMAKE_LINKER})
+        set(ENV{RANLIB} ${VCPKG_DETECTED_CMAKE_RANLIB})
+        set(ENV{STRIP} ${VCPKG_DETECTED_CMAKE_STRIP})
+    endif()
 
     if(VCPKG_TARGET_IS_MINGW)
         if(LIBVPX_TARGET_ARCH STREQUAL "x86")
@@ -184,30 +186,16 @@ else()
         endif()
     elseif(VCPKG_TARGET_IS_LINUX)
         set(LIBVPX_TARGET "${LIBVPX_TARGET_ARCH}-linux-gcc")
-        if(VCPKG_TARGET_ARCHITECTURE STREQUAL arm AND NOT VCPKG_DETECTED_CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL arm)
-          message(STATUS "Cross-building for arm-linux with arm-linux-gnueabihf")
-          set(ENV{CROSS} "arm-linux-gnueabihf-")
-          unset(ENV{CC})
-          unset(ENV{CXX})
-          unset(ENV{AR})
-          unset(ENV{LD})
-          unset(ENV{RANLIB})
-          unset(ENV{STRIP})
-        endif()
     elseif(VCPKG_TARGET_IS_ANDROID)
         set(LIBVPX_TARGET "generic-gnu")
         # Settings
         if(VCPKG_TARGET_ARCHITECTURE STREQUAL x86)
-            set(ANDROID_TARGET_TRIPLET i686-linux-android)
             set(OPTIONS "${OPTIONS} --disable-sse4_1 --disable-avx --disable-avx2 --disable-avx512")
         elseif(VCPKG_TARGET_ARCHITECTURE STREQUAL x64)
-            set(ANDROID_TARGET_TRIPLET x86_64-linux-android)
             set(OPTIONS "${OPTIONS} --disable-avx --disable-avx2 --disable-avx512")
         elseif(VCPKG_TARGET_ARCHITECTURE STREQUAL arm)
-            set(ANDROID_TARGET_TRIPLET armv7a-linux-androideabi)
             set(OPTIONS "${OPTIONS} --enable-thumb --disable-neon")
         elseif(VCPKG_TARGET_ARCHITECTURE STREQUAL arm64)
-            set(ANDROID_TARGET_TRIPLET aarch64-linux-android)
             set(OPTIONS "${OPTIONS} --enable-thumb")
         endif()
         # Set environment variables for configure
@@ -215,6 +203,8 @@ else()
         set(ENV{LDFLAGS} "${LDFLAGS} --target=${VCPKG_DETECTED_CMAKE_C_COMPILER_TARGET}")
         # Set clang target
         set(OPTIONS "${OPTIONS} --extra-cflags=--target=${VCPKG_DETECTED_CMAKE_C_COMPILER_TARGET} --extra-cxxflags=--target=${VCPKG_DETECTED_CMAKE_CXX_COMPILER_TARGET}")
+        # Unset nasm and let AS do its job
+        unset(AS_NASM)
     elseif(VCPKG_TARGET_IS_OSX)
         if(VCPKG_TARGET_ARCHITECTURE STREQUAL "arm64")
             set(LIBVPX_TARGET "arm64-darwin20-gcc")
@@ -249,13 +239,14 @@ else()
             ${OPTIONS}
             ${OPTIONS_RELEASE}
             ${MAC_OSX_MIN_VERSION_CFLAGS}
+            ${AS_NASM}
         WORKING_DIRECTORY "${CURRENT_BUILDTREES_DIR}/${TARGET_TRIPLET}-rel"
         LOGNAME configure-${TARGET_TRIPLET}-rel)
 
         message(STATUS "Building libvpx for Release")
         vcpkg_execute_required_process(
             COMMAND
-                ${BASH} --noprofile --norc -c "make -j"
+                ${BASH} --noprofile --norc -c "make -j${VCPKG_CONCURRENCY}"
             WORKING_DIRECTORY "${CURRENT_BUILDTREES_DIR}/${TARGET_TRIPLET}-rel"
             LOGNAME build-${TARGET_TRIPLET}-rel
         )
@@ -282,13 +273,14 @@ else()
             ${OPTIONS}
             ${OPTIONS_DEBUG}
             ${MAC_OSX_MIN_VERSION_CFLAGS}
+            ${AS_NASM}
         WORKING_DIRECTORY "${CURRENT_BUILDTREES_DIR}/${TARGET_TRIPLET}-dbg"
         LOGNAME configure-${TARGET_TRIPLET}-dbg)
 
         message(STATUS "Building libvpx for Debug")
         vcpkg_execute_required_process(
             COMMAND
-                ${BASH} --noprofile --norc -c "make -j"
+                ${BASH} --noprofile --norc -c "make -j${VCPKG_CONCURRENCY}"
             WORKING_DIRECTORY "${CURRENT_BUILDTREES_DIR}/${TARGET_TRIPLET}-dbg"
             LOGNAME build-${TARGET_TRIPLET}-dbg
         )
